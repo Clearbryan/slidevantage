@@ -1,18 +1,36 @@
-import mongoose from 'mongoose'
+// src/lib/db.ts
+import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI!
-if (!MONGODB_URI) throw new Error('MONGODB_URI is not defined in .env.local')
+// Force Node.js runtime - critical to avoid Edge Runtime error
+export const runtime = 'nodejs';
 
-const cache = globalThis as typeof globalThis & {
-  _mc?: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null }
+const MONGODB_URI = process.env.MONGODB_URI!;
+
+if (!MONGODB_URI) {
+  throw new Error(
+    'Please define the MONGODB_URI environment variable inside .env.local',
+  );
 }
-if (!cache._mc) cache._mc = { conn: null, promise: null }
+
+// Global cache to prevent multiple connections in development
+const cached = (globalThis as any)._mongooseCache || {
+  conn: null,
+  promise: null,
+};
 
 export async function connectDB() {
-  if (cache._mc!.conn) return cache._mc!.conn
-  if (!cache._mc!.promise) {
-    cache._mc!.promise = mongoose.connect(MONGODB_URI, { bufferCommands: false })
+  if (cached.conn) {
+    return cached.conn;
   }
-  cache._mc!.conn = await cache._mc!.promise
-  return cache._mc!.conn
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
+    });
+  }
+
+  cached.conn = await cached.promise;
+  (globalThis as any)._mongooseCache = cached;
+
+  return cached.conn;
 }
