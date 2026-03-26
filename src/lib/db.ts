@@ -1,7 +1,6 @@
 // src/lib/db.ts
 import mongoose from 'mongoose';
 
-// Force Node.js runtime - critical to avoid Edge Runtime error
 export const runtime = 'nodejs';
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -12,16 +11,13 @@ if (!MONGODB_URI) {
   );
 }
 
-// Global cache to prevent multiple connections in development
-const cached = (globalThis as any)._mongooseCache || {
+const cached = (globalThis as any)._mongooseCache ?? {
   conn: null,
   promise: null,
 };
 
 export async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
+  if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
     cached.promise = mongoose.connect(MONGODB_URI, {

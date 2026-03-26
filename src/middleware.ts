@@ -1,5 +1,5 @@
 // src/middleware.ts
-import { auth } from '@/lib/auth'; // This should now be safe (lightweight export)
+import { auth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 
 const ADMIN_ONLY = [
@@ -21,7 +21,6 @@ export default auth((req) => {
   const user = req.auth?.user as any;
   const isLoggedIn = !!req.auth;
 
-  // Always allow these routes
   if (
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/stripe/webhook')
@@ -29,12 +28,10 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Allow upload route if logged in
   if (pathname.startsWith('/api/upload') && isLoggedIn) {
     return NextResponse.next();
   }
 
-  // Public pages
   if (
     pathname === '/' ||
     pathname.startsWith('/templates') ||
@@ -46,7 +43,6 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Auth pages
   if (pathname === '/login' || pathname === '/register') {
     if (isLoggedIn) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
@@ -54,7 +50,6 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Dashboard protection
   if (pathname.startsWith('/dashboard')) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL('/login', req.url));
@@ -80,8 +75,16 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
+// This is the key fix for the Mongoose / Edge build error
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|uploads|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)',
+  ],
+  unstable_allowDynamic: [
+    './src/lib/db.ts',
+    './src/lib/auth-authorize.ts',
+    './src/lib/auth.ts',
+    './src/lib/auth-authorize.ts', // duplicate is harmless
+    '**/node_modules/mongoose/**', // allows the browser.umd.js
   ],
 };

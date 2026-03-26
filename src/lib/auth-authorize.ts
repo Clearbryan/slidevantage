@@ -11,7 +11,6 @@ export async function authorizeUser(credentials: any) {
   const email = (credentials.email as string).toLowerCase().trim();
   const password = credentials.password as string;
 
-  // Check Admin first
   const admin = await Admin.findOne({ email }).lean();
   if (admin) {
     const valid = await bcrypt.compare(password, (admin as any).passwordHash);
@@ -30,7 +29,6 @@ export async function authorizeUser(credentials: any) {
     };
   }
 
-  // Check regular User
   const user = await User.findOne({ email, isActive: true }).lean();
   if (user && (user as any).passwordHash) {
     const valid = await bcrypt.compare(password, (user as any).passwordHash);
